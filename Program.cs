@@ -5,6 +5,7 @@ using MySql.Data.MySqlClient;
 using Dapper;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Policy;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,29 +13,23 @@ var builder = WebApplication.CreateBuilder(args);
 //builder.Services.AddScoped<LinkShorteningService>();
 var linkShorteningService = new LinkShorteningService();
 
-// Add services to the container.
-
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
 
 app.UseHttpsRedirection();
 
-//app.MapPost("/", (LinkShorteningService linkShorteningService, HttpContext httpContext) =>
-//{
-
-
-//    using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=mydb");
-
-//    var link = connection.Query<Link>("select * from testtable;").ToList();
-
-//    return link;
-//});
 
 app.MapGet("a/{code}", (string code) =>
 {
-    return Results.Redirect("https://google.com");
-    //return Results.Ok($"{code}");
+    using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=mydb");
+
+    var lurl = connection.QueryFirstOrDefault<string>("select LongUrl from Links where ShortUrl=@surl;", new { surl = code });
+
+    if (lurl != null)
+    {
+        return Results.Redirect(lurl);
+    }
+
+    return Results.BadRequest("URL not found.");
 
 });
 
@@ -64,9 +59,9 @@ app.MapGet("/create/{*url}", (string url) => {
 
             if (count == 0)
             {
-                var newLink = new Link() { LongUrl = url, ShortUrl = $"https://avi.com/a/{shortKey}", CreationTime = DateTime.Now };
+                var newLink = new Link() { LongUrl = url, ShortUrl = shortKey, CreationTime = DateTime.Now };
                 var affectedRows = connection.Execute("INSERT INTO Links values (@LongUrl, @ShortUrl, @CreationTime);", newLink);
-                return Results.Ok($"Short URL: {newLink.ShortUrl}");
+                return Results.Ok($"Short URL: https://localhost:7168/a/{newLink.ShortUrl}");
             }
         }
 
