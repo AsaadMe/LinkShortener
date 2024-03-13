@@ -16,7 +16,7 @@ app.UseHttpsRedirection();
 
 app.MapGet("a/{skey}", (string skey) =>
 {
-    using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=mydb");
+    using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=linkshortener");
 
     var lurl = connection.QueryFirstOrDefault<string>("select LongUrl from Links where ShortKey=@skey;", new { skey });
 
@@ -31,7 +31,8 @@ app.MapGet("a/{skey}", (string skey) =>
 });
 
 
-app.MapGet("/create/{*url}", (HttpContext context, string url) => {
+app.MapGet("/create/{*url}", (HttpContext context, string url) =>
+{
 
     if (!Uri.TryCreate(url, UriKind.Absolute, out _))
     {
@@ -40,7 +41,7 @@ app.MapGet("/create/{*url}", (HttpContext context, string url) => {
 
     using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=mydb");
 
-    var skey = connection.QueryFirstOrDefault<string>("select ShortKey from Links where LongUrl=@lurl;", new {lurl=url});
+    var skey = connection.QueryFirstOrDefault<string>("select ShortKey from Links where LongUrl=@lurl;", new { lurl = url });
 
     var req = context.Request;
     var domainName = req.Scheme + "://" + req.Host.Value;
