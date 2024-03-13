@@ -2,13 +2,14 @@
 {
     public class Link
     {
+        public int ID {  get; set; }
         public string LongUrl { get; set; }
-        public string ShortUrl { get; set; }
+        public string ShortKey { get; set; }
         public DateTime? CreationTime { get; set; }
 
         public override string ToString()
         {
-            return $"URL: {LongUrl}, Short Url: {ShortUrl}, Creation Time: {CreationTime.ToString()}";
+            return $"ID: {ID}, URL: {LongUrl}, Short Url: {ShortKey}, Creation Time: {CreationTime.ToString()}";
         }
     }
 }
