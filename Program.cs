@@ -39,7 +39,7 @@ app.MapGet("/create/{*url}", (HttpContext context, string url) =>
         return Results.BadRequest("URL is Invalid | Use full URL like https://addr.com");
     }
 
-    using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=mydb");
+    using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=linkshortener");
 
     var skey = connection.QueryFirstOrDefault<string>("select ShortKey from Links where LongUrl=@lurl;", new { lurl = url });
 
