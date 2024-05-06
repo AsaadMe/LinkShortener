@@ -1,8 +1,5 @@
 using LinkShortener.Models;
 using LinkShortener.Services;
-using MySql.Data.MySqlClient;
-using Dapper;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,14 +13,14 @@ app.UseHttpsRedirection();
 
 app.MapGet("a/{skey}", (string skey) =>
 {
-    using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=linkshortener");
-
-    var lurl = connection.QueryFirstOrDefault<string>("select LongUrl from Links where ShortKey=@skey;", new { skey });
-
-    if (lurl != null)
+    using (var dbcontext = new LinkContext())
     {
-        var uri = new Uri(lurl);
-        return Results.Redirect(uri.AbsoluteUri);
+        var link = dbcontext.Links.FirstOrDefault(l => l.ShortKey == skey);
+        if (link != null)
+        {
+            var uri = new Uri(link.LongUrl);
+            return Results.Redirect(uri.AbsoluteUri);
+        }
     }
 
     return Results.BadRequest("URL not found.");
@@ -39,35 +36,51 @@ app.MapGet("/create/{*url}", (HttpContext context, string url) =>
         return Results.BadRequest("URL is Invalid | Use full URL like https://addr.com");
     }
 
-    using var connection = new MySqlConnection("Server=localhost; User ID=root; Password=pass; Database=linkshortener");
-
-    var skey = connection.QueryFirstOrDefault<string>("select ShortKey from Links where LongUrl=@lurl;", new { lurl = url });
-
     var req = context.Request;
     var domainName = req.Scheme + "://" + req.Host.Value;
 
-    if (skey != null)
+    using (var dbcontext = new LinkContext())
     {
-        return Results.Ok($"{domainName}/a/{skey}");
-    }
-    else
-    {
-        while (true)
+        var link = dbcontext.Links.FirstOrDefault(l => l.LongUrl == url);
+        if (link != null)
         {
-            var shortKey = linkShorteningService.GenerateShortLink(4);
-            var q1 = "SELECT COUNT(*) FROM Links WHERE ShortKey = @shortKey";
-            var count = connection.QueryFirstOrDefault<int>(q1, new { shortKey });
-
-            if (count == 0)
+            return Results.Ok($"{domainName}/a/{link.ShortKey}");
+        }
+        else
+        {
+            while (true)
             {
-                var newLink = new Link() { LongUrl = url, ShortKey = shortKey, CreationTime = DateTime.Now };
-                var affectedRows = connection.Execute("INSERT INTO Links (LongUrl, ShortKey, CreationTime) values (@LongUrl, @ShortKey, @CreationTime);", newLink);
-                return Results.Ok($"{domainName}/a/{newLink.ShortKey}");
+                var shortKey = linkShorteningService.GenerateShortLink(4);
+
+                if (dbcontext.Links.FirstOrDefault(l => l.ShortKey == shortKey) == null)
+                {
+                    var newLink = new Link() { LongUrl = url, ShortKey = shortKey, CreationTime = DateTime.Now };
+                    InsertData(newLink);
+                    return Results.Ok($"{domainName}/a/{newLink.ShortKey}");
+                }
             }
         }
-
     }
 });
 
 app.Run();
 
+static void InsertData(Link link)
+{
+    using (var dbcontext = new LinkContext())
+    {
+        // Creates the database if not exists
+        dbcontext.Database.EnsureCreated();
+
+        // Adds some books
+        dbcontext.Links.Add(new Link
+        {
+            LongUrl = link.LongUrl,
+            ShortKey = link.ShortKey,
+            CreationTime = link.CreationTime
+        });
+
+        // Saves changes
+        dbcontext.SaveChanges();
+    }
+}

@@ -1,6 +1,6 @@
 # Link Shortener
 
-Using .NET8 Minimal API / MySQL / Dapper
+Using .NET8 Minimal API / MySQL / MySql.EntityFrameworkCore
 
 ### API Endpoints
 
@@ -10,7 +10,7 @@ Using .NET8 Minimal API / MySQL / Dapper
 
 - `/a/{Short Key}` -> redirect to Full URL.
 
-### DB Schema
+### _Links_ Table Schema
 
 | Name         | Type         | Options                     |
 | ------------ | ------------ | --------------------------- |
@@ -27,3 +27,6 @@ Using .NET8 Minimal API / MySQL / Dapper
   "Database": "linkshortener"
 }
 ```
+
+
+> if `dbcontext.Database.EnsureCreated()` doesn't work make sure the Links table is created.
