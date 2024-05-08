@@ -1,21 +1,27 @@
 using LinkShortener.Models;
 using LinkShortener.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//builder.Services.AddScoped<LinkShorteningService>();
-var linkShorteningService = new LinkShorteningService();
+string connString = builder.Configuration.GetConnectionString("Mysqlcon");
+
+builder.Services.AddTransient<LinkShorteningService>();
+builder.Services.AddDbContext<LinkContext>(options =>
+{
+    options.UseMySQL(connString);
+});
 
 var app = builder.Build();
 
 app.UseHttpsRedirection();
 
 
-app.MapGet("a/{skey}", (string skey) =>
+app.MapGet("a/{skey}", (string skey, LinkContext _context) =>
 {
-    using (var dbcontext = new LinkContext())
+    using (_context)
     {
-        var link = dbcontext.Links.FirstOrDefault(l => l.ShortKey == skey);
+        var link = _context.Links.FirstOrDefault(l => l.ShortKey == skey);
         if (link != null)
         {
             var uri = new Uri(link.LongUrl);
@@ -28,7 +34,7 @@ app.MapGet("a/{skey}", (string skey) =>
 });
 
 
-app.MapGet("/create/{*url}", (HttpContext context, string url) =>
+app.MapGet("/create/{*url}", (HttpContext context, string url, LinkShorteningService linkShorteningService, LinkContext _context) =>
 {
 
     if (!Uri.TryCreate(url, UriKind.Absolute, out _))
@@ -39,9 +45,10 @@ app.MapGet("/create/{*url}", (HttpContext context, string url) =>
     var req = context.Request;
     var domainName = req.Scheme + "://" + req.Host.Value;
 
-    using (var dbcontext = new LinkContext())
+    using (_context)
     {
-        var link = dbcontext.Links.FirstOrDefault(l => l.LongUrl == url);
+        _context.Database.EnsureCreated();
+        var link = _context.Links.FirstOrDefault(l => l.LongUrl == url);
         if (link != null)
         {
             return Results.Ok($"{domainName}/a/{link.ShortKey}");
@@ -52,10 +59,11 @@ app.MapGet("/create/{*url}", (HttpContext context, string url) =>
             {
                 var shortKey = linkShorteningService.GenerateShortLink(4);
 
-                if (dbcontext.Links.FirstOrDefault(l => l.ShortKey == shortKey) == null)
+                if (_context.Links.FirstOrDefault(l => l.ShortKey == shortKey) == null)
                 {
                     var newLink = new Link() { LongUrl = url, ShortKey = shortKey, CreationTime = DateTime.Now };
-                    InsertData(newLink);
+                    _context.Links.Add(newLink);
+                    _context.SaveChanges();
                     return Results.Ok($"{domainName}/a/{newLink.ShortKey}");
                 }
             }
@@ -64,23 +72,3 @@ app.MapGet("/create/{*url}", (HttpContext context, string url) =>
 });
 
 app.Run();
-
-static void InsertData(Link link)
-{
-    using (var dbcontext = new LinkContext())
-    {
-        // Creates the database if not exists
-        dbcontext.Database.EnsureCreated();
-
-        // Adds some books
-        dbcontext.Links.Add(new Link
-        {
-            LongUrl = link.LongUrl,
-            ShortKey = link.ShortKey,
-            CreationTime = link.CreationTime
-        });
-
-        // Saves changes
-        dbcontext.SaveChanges();
-    }
-}

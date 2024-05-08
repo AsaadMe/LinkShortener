@@ -7,9 +7,9 @@ public class LinkContext : DbContext
 {
     public DbSet<Link> Links { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    public LinkContext(DbContextOptions<LinkContext> options) : base(options)
     {
-        optionsBuilder.UseMySQL("server=localhost;database=linkshortener;user=root;password=pass");
+
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
