@@ -59,7 +59,7 @@ app.MapGet("/create/{*url}", (HttpContext context, string url, LinkShorteningSer
             {
                 var shortKey = linkShorteningService.GenerateShortLink(4);
 
-                if (_context.Links.FirstOrDefault(l => l.ShortKey == shortKey) == null)
+                if (!_context.Links.Any(l => l.ShortKey == shortKey))
                 {
                     var newLink = new Link() { LongUrl = url, ShortKey = shortKey, CreationTime = DateTime.Now };
                     _context.Links.Add(newLink);
