@@ -18,15 +18,3 @@ Using .NET8 Minimal API / MySQL / MySql.EntityFrameworkCore
 | LongUrl      | varchar(255) | NOT NULL UNIQUE             |
 | ShortKey     | varchar(255) | NOT NULL                    |
 | CreationTime | datetime     |
-
-```json
-{
-  "Server": "localhost",
-  "User ID": "root",
-  "Password": "pass",
-  "Database": "linkshortener"
-}
-```
-
-
-> if `dbcontext.Database.EnsureCreated()` doesn't work make sure the Links table is created.
